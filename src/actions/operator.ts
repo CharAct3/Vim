@@ -784,6 +784,51 @@ export class CommentOperator extends BaseOperator {
 }
 
 @RegisterAction
+export class ROT13Operator extends BaseOperator {
+  public keys = ['g', '?'];
+  public modes = [Mode.Normal, Mode.Visual, Mode.VisualLine, Mode.VisualBlock];
+
+  public async run(vimState: VimState, start: Position, end: Position): Promise<VimState> {
+    end = end.getRight();
+    if (vimState.currentRegisterMode === RegisterMode.LineWise) {
+      start = start.getLineBegin();
+      end = end.getLineEnd();
+    }
+    const original = TextEditor.getText(new vscode.Range(start, end));
+    vimState.recordedState.transformations.push({
+      type: 'replaceText',
+      text: original
+        .split('')
+        .map(ROT13Operator.rot13)
+        .join(''),
+      start,
+      end,
+    });
+
+    return vimState;
+  }
+
+  /**
+   * https://en.wikipedia.org/wiki/ROT13
+   */
+  public static rot13(char: string) {
+    let charCode = char.charCodeAt(0);
+
+    if (char >= 'a' && char <= 'z') {
+      const a = 'a'.charCodeAt(0);
+      charCode = ((charCode - a + 13) % 26) + a;
+    }
+
+    if (char >= 'A' && char <= 'Z') {
+      const A = 'A'.charCodeAt(0);
+      charCode = ((charCode - A + 13) % 26) + A;
+    }
+
+    return String.fromCharCode(charCode);
+  }
+}
+
+@RegisterAction
 export class CommentBlockOperator extends BaseOperator {
   public keys = ['g', 'C'];
   public modes = [Mode.Normal, Mode.Visual, Mode.VisualLine];
